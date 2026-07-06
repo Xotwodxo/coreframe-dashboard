@@ -76,16 +76,13 @@ export default function LandingPage() {
             >
               View live demo
             </Link>
-            <Link
-              href="/login"
+            <a
+              href="https://coreframedigital.co.uk/contact"
               className="w-full rounded-lg border border-white/40 px-6 py-3 text-center text-base font-semibold text-white transition-colors hover:border-white hover:bg-white/5 sm:w-auto"
             >
-              Sign in
-            </Link>
+              Get in touch
+            </a>
           </div>
-          <p className="mt-6 text-sm text-slate-400">
-            No credit card. No setup fee.
-          </p>
         </div>
       </section>
 
