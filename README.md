@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Coreframe Dashboard
 
-## Getting Started
+A reusable business performance dashboard for small service businesses.
+Owners track revenue, leads, and jobs via manual entry or CSV upload, and see
+KPI cards, 12-month trend charts, and a monthly breakdown table.
 
-First, run the development server:
+Built by Coreframe Digital.
 
-```bash
+## Stack
+
+- Next.js 16 (App Router, TypeScript, Turbopack)
+- Tailwind CSS 4
+- Supabase (magic link auth, Postgres, RLS)
+- Recharts, PapaParse
+
+## Routes
+
+| Route | Auth | Purpose |
+| --- | --- | --- |
+| `/` | Public | Landing page |
+| `/demo` | Public | Full dashboard populated with fictional data (Bright Spark Electrical) |
+| `/login` | Public | Magic link sign-in |
+| `/auth/callback` | Public | Auth callback, routes new users to onboarding |
+| `/dashboard` | Required | KPI cards, revenue/leads charts, service donut, monthly table |
+| `/dashboard/data` | Required | Entries table, add entry, CSV import |
+| `/dashboard/settings` | Required | Business details, brand colour, monthly goals |
+
+Route protection lives in `proxy.ts` (Next 16's replacement for middleware).
+
+## Local development
+
+```
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Environment variables (`.env.local`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_APP_URL=https://dashboard.coreframedigital.co.uk
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Supabase configuration
 
-## Learn More
+The database schema (businesses, metric_entries, goals + RLS policies) is
+applied as the `initial_schema` migration.
 
-To learn more about Next.js, take a look at the following resources:
+In the Supabase dashboard under Authentication > URL Configuration:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- For production, set Site URL to `https://dashboard.coreframedigital.co.uk`
+- Add redirect URLs:
+  - `http://localhost:3000/auth/callback`
+  - `https://dashboard.coreframedigital.co.uk/auth/callback`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+If a redirect URL is not on the allow-list, Supabase falls back to the Site
+URL; the proxy forwards any auth code landing on `/` to `/auth/callback`, so
+sign-in still completes either way.
 
-## Deploy on Vercel
+The built-in Supabase SMTP has low rate limits (a few emails per hour).
+Configure custom SMTP before putting real clients on this.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment (Vercel)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Push this repo to GitHub and import it in Vercel
+2. Set the four environment variables above in the Vercel project
+3. Point `dashboard.coreframedigital.co.uk` at the Vercel project
+4. Update the Supabase Site URL as described above
