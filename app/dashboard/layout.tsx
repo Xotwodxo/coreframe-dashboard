@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
+import { isLocalDashboardMode } from "../../lib/local-mode";
 import Sidebar from "../../components/layout/Sidebar";
 
 export default async function DashboardLayout({
@@ -7,6 +8,19 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  if (isLocalDashboardMode()) {
+    return (
+      <div className="min-h-screen bg-slate-100">
+        <Sidebar businessName="Coreframe Local" localMode />
+        <main className="lg:pl-60">
+          <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            {children}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

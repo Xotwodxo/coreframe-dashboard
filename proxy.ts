@@ -1,11 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isLocalDashboardMode } from "./lib/local-mode";
 
 // Protects all /dashboard routes, and forwards auth codes that land on the
 // site root (Supabase falls back to the Site URL when a redirect URL is not
 // on its allow-list) to the callback handler.
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  if (isLocalDashboardMode() && pathname.startsWith("/dashboard")) {
+    return NextResponse.next();
+  }
 
   if (pathname === "/") {
     if (searchParams.has("code") || searchParams.has("token_hash")) {

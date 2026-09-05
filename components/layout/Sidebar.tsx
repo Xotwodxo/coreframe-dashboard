@@ -7,6 +7,7 @@ import { createClient } from "../../lib/supabase/client";
 
 type Props = {
   businessName: string;
+  localMode?: boolean;
 };
 
 const NAV_ITEMS = [
@@ -33,6 +34,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: "/dashboard/seo",
+    label: "SEO",
+    icon: (
+      <svg viewBox="0 0 20 20" className="h-5 w-5" fill="currentColor">
+        <path fillRule="evenodd" d="M8.5 3a5.5 5.5 0 104.306 8.924l3.635 3.635a.75.75 0 101.06-1.06l-3.634-3.635A5.5 5.5 0 008.5 3zM4.5 8.5a4 4 0 117.999.001A4 4 0 014.5 8.5z" clipRule="evenodd" />
+        <path d="M6.75 8.75a.75.75 0 01.75-.75h.25V6.75a.75.75 0 011.5 0V8h.25a.75.75 0 010 1.5h-.25v.75a.75.75 0 01-1.5 0V9.5H7.5a.75.75 0 01-.75-.75z" />
+      </svg>
+    ),
+  },
+  {
     href: "/dashboard/settings",
     label: "Settings",
     icon: (
@@ -55,7 +66,7 @@ function Logo() {
   );
 }
 
-export default function Sidebar({ businessName }: Props) {
+export default function Sidebar({ businessName, localMode = false }: Props) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -70,7 +81,9 @@ export default function Sidebar({ businessName }: Props) {
   const navLinks = (
     <nav className="flex flex-col gap-1">
       {NAV_ITEMS.map((item) => {
-        const active = pathname === item.href;
+        const active =
+          pathname === item.href ||
+          (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
         return (
           <Link
             key={item.href}
@@ -95,10 +108,15 @@ export default function Sidebar({ businessName }: Props) {
       <p className="truncate px-3 text-xs font-medium text-slate-400">
         {businessName}
       </p>
-      <button
-        onClick={handleSignOut}
-        className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-      >
+      {localMode ? (
+        <p className="mt-2 rounded-lg bg-brand/10 px-3 py-2 text-xs font-medium text-brand">
+          Local mode · data stays on this Mac
+        </p>
+      ) : (
+        <button
+          onClick={handleSignOut}
+          className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+        >
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor">
           <path
             fillRule="evenodd"
@@ -111,8 +129,9 @@ export default function Sidebar({ businessName }: Props) {
             clipRule="evenodd"
           />
         </svg>
-        Sign out
-      </button>
+          Sign out
+        </button>
+      )}
     </div>
   );
 
