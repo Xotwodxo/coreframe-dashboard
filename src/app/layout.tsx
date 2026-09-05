@@ -13,10 +13,16 @@ export const metadata: Metadata = {
   description: "Private admin system for Coreframe Digital.",
   // Private tool. Not linked publicly, and must never be indexed.
   robots: { index: false, follow: false, nocache: true },
+  // Home screen install on iOS: standalone, named, navy status bar.
+  appleWebApp: {
+    capable: true,
+    title: "Coreframe Admin",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#007a80",
+  themeColor: "#1a2332",
   // No maximum-scale: pinch-zoom must keep working.
   width: "device-width",
   initialScale: 1,

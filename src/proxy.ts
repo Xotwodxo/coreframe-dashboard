@@ -78,6 +78,6 @@ export const config = {
    * webhook verified by signature; neither has a session) and static files.
    */
   matcher: [
-    "/((?!_next/static|_next/image|api/enquiries|api/webhooks|favicon.ico|robots.txt|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|api/enquiries|api/webhooks|favicon.ico|robots.txt|manifest.webmanifest|apple-icon.png|icon.png|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
   ],
 };
