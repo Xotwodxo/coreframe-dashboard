@@ -65,14 +65,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not configured." }, { status: 503 });
   }
 
+  if (!secretMatches(request.headers.get("x-cf-intake-key"), expected)) {
+    return NextResponse.json({ error: "Unauthorised." }, { status: 401 });
+  }
+
   // Same rule for the database key: refuse loudly rather than crash at insert.
+  // Checked after the shared secret so a bad key is always a 401, and a
+  // half-configured deployment never reveals which half is missing.
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[enquiries] SUPABASE_SERVICE_ROLE_KEY is not set. Refusing.");
     return NextResponse.json({ error: "Not configured." }, { status: 503 });
-  }
-
-  if (!secretMatches(request.headers.get("x-cf-intake-key"), expected)) {
-    return NextResponse.json({ error: "Unauthorised." }, { status: 401 });
   }
 
   if (!request.headers.get("content-type")?.includes("application/json")) {
