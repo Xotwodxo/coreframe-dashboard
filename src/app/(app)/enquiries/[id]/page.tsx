@@ -41,7 +41,7 @@ export default async function EnquiryPage({ params }: PageProps<"/enquiries/[id]
 
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">{enquiry.name}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{enquiry.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {enquiry.business_name ? `${enquiry.business_name} · ` : null}
             Received {formatDateTime(enquiry.received_at)}
