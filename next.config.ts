@@ -1,10 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Pin the workspace root so a stray lockfile outside the repo does not
-  // change how Turbopack resolves files
+  // The repo sits inside the Coreframe vault, which is itself a git checkout.
+  // Pinning the root stops Turbopack walking up and adopting a stray lockfile.
   turbopack: {
-    root: __dirname,
+    root: process.cwd(),
   },
 };
 
