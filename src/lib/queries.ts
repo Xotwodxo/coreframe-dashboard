@@ -2,7 +2,13 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { isOverdue } from "@/lib/enquiry-status";
-import type { Enquiry, EnquiryStatus } from "@/lib/types";
+import type {
+  ChangeRequest,
+  Client,
+  Enquiry,
+  EnquiryStatus,
+  LedgerEntry,
+} from "@/lib/types";
 
 /**
  * Read helpers for server components.
@@ -60,4 +66,122 @@ export async function getWaitingEnquiries(): Promise<WaitingEnquiry[]> {
     ...enquiry,
     overdue: isOverdue(enquiry.received_at, now),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: clients, allowance, requests
+// ---------------------------------------------------------------------------
+
+export interface ClientWithBalance extends Client {
+  /** Null when the plan carries no allowance. */
+  balance_minutes: number | null;
+}
+
+async function latestBalances(clientIds: string[]) {
+  const balances = new Map<string, number>();
+  if (clientIds.length === 0) return balances;
+  const supabase = await createClient();
+  // Newest first; the first row seen per client is its current balance.
+  const { data, error } = await supabase
+    .from("allowance_ledger")
+    .select("client_id, balance_after, seq")
+    .in("client_id", clientIds)
+    .order("seq", { ascending: false });
+  warn("latestBalances", error?.message);
+  for (const row of (data ?? []) as Pick<LedgerEntry, "client_id" | "balance_after">[]) {
+    if (!balances.has(row.client_id)) balances.set(row.client_id, row.balance_after);
+  }
+  return balances;
+}
+
+function withBalance(client: Client, balances: Map<string, number>): ClientWithBalance {
+  return {
+    ...client,
+    balance_minutes:
+      client.allowance_minutes === null ? null : (balances.get(client.id) ?? 0),
+  };
+}
+
+export async function getClients(): Promise<ClientWithBalance[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("clients").select("*").order("name");
+  warn("getClients", error?.message);
+  const clients = (data ?? []) as Client[];
+  const balances = await latestBalances(clients.map((client) => client.id));
+  return clients.map((client) => withBalance(client, balances));
+}
+
+export async function getClient(id: string): Promise<ClientWithBalance | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("clients").select("*").eq("id", id).maybeSingle();
+  warn("getClient", error?.message);
+  if (!data) return null;
+  const client = data as Client;
+  const balances = await latestBalances([client.id]);
+  return withBalance(client, balances);
+}
+
+export async function getLedger(clientId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("allowance_ledger")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("seq", { ascending: false })
+    .limit(100);
+  warn("getLedger", error?.message);
+  return (data ?? []) as LedgerEntry[];
+}
+
+export async function getRequests(clientId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("requests")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  warn("getRequests", error?.message);
+  return (data ?? []) as ChangeRequest[];
+}
+
+export async function getClientEnquiries(clientId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("enquiries")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("received_at", { ascending: false })
+    .limit(20);
+  warn("getClientEnquiries", error?.message);
+  return (data ?? []) as Enquiry[];
+}
+
+export interface OpenRequest extends ChangeRequest {
+  client: Pick<Client, "id" | "name"> | null;
+}
+
+/** Requests not yet done, for Today. Scheduled ones first, soonest first. */
+export async function getOpenRequests() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("requests")
+    .select("*, client:clients (id, name)")
+    .in("status", ["new", "scheduled"])
+    .order("scheduled_for", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
+  warn("getOpenRequests", error?.message);
+  return (data ?? []) as OpenRequest[];
+}
+
+/** Plans renewing inside the window, plus anything past due, for Today. */
+export async function getRenewals(days = 14) {
+  const supabase = await createClient();
+  const until = new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .or(`plan_status.eq.past_due,and(renews_on.lte.${until},plan_status.in.(active,pending))`)
+    .order("renews_on", { ascending: true, nullsFirst: false });
+  warn("getRenewals", error?.message);
+  return (data ?? []) as Client[];
 }

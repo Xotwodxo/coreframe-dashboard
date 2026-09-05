@@ -36,11 +36,14 @@ Three things about this stack that will bite you if you assume otherwise:
 | `/` | Today. Enquiries at `new`, newest first, flagged after 24 hours |
 | `/enquiries` | Full list, filterable by status |
 | `/enquiries/[id]` | Everything submitted, call and email, status change |
+| `/clients` | Care plan clients, allowance left, add a client |
+| `/clients/[id]` | Plan, allowance ledger, change requests, edit |
 | `/login` | Email and password, one user, no sign-up |
 | `/api/enquiries` | Intake from the website, shared secret |
+| `/api/webhooks/stripe` | Plan status, renewals and monthly allowance credits |
 
-Five routes. Phase 2 adds clients and the Stripe webhook. Resist adding
-anything else.
+Eight routes. Phase 3 is the client-facing half in the client dashboard
+design. Resist adding anything else here.
 
 ## Getting it running
 
@@ -70,8 +73,9 @@ Three gates, in this order:
 3. **RLS.** `anon` can read and write nothing; `authenticated` has full access.
    With one account those are the same set.
 
-`SUPABASE_SERVICE_ROLE_KEY` bypasses all of that and is used on exactly one
-path, `/api/enquiries`, guarded by `x-cf-intake-key` instead.
+`SUPABASE_SERVICE_ROLE_KEY` bypasses all of that and is used on exactly two
+paths, neither of which has a session: `/api/enquiries`, guarded by
+`x-cf-intake-key`, and `/api/webhooks/stripe`, guarded by Stripe's signature.
 
 **If a second user is ever added**, the RLS policy must be rewritten to scope
 by user first. Adding an account without doing that gives them everything.
@@ -88,6 +92,26 @@ by user first. Adding an account without doing that gives them everything.
 
 Set in the **website** project: `ADMIN_INTAKE_URL`, `ADMIN_INTAKE_SECRET`.
 Set here: `ADMIN_INTAKE_SECRET` (same value), `SUPABASE_SERVICE_ROLE_KEY`.
+
+## Care plans and allowance
+
+Money is integer pence, time is integer minutes, everywhere. Tier defaults
+live in `src/lib/tiers.ts` and come from `Business/02-Strategy/packages.md`.
+
+The allowance ledger is append only and every row carries the balance after
+it. Minutes only move through one Postgres function, `apply_allowance`, which
+locks the client, writes the row, and applies the three-month cap in the same
+transaction. The Stripe webhook calls it on `invoice.paid`; marking a request
+done calls it with the minutes spent. That minutes field is the one manual
+entry in the system.
+
+Stripe: create a webhook endpoint in the Stripe dashboard pointing at
+`/api/webhooks/stripe` for `invoice.paid`, `invoice.payment_failed`,
+`customer.subscription.updated` and `customer.subscription.deleted`, and set
+its signing secret as `STRIPE_WEBHOOK_SECRET`. No Stripe secret key is needed:
+everything the app has to know arrives inside the signed event. The client's
+`stripe_customer_id` is what links an event to a row; an event for an unknown
+customer is logged and ignored.
 
 ## Enquiry lifecycle
 

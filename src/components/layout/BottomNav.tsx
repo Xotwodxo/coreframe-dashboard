@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Inbox } from "lucide-react";
+import { Home, Inbox, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 /**
- * Primary navigation, thumb-height at the bottom of the screen. Two items,
- * because phase 1 has two screens. Phase 2 adds Clients here and nowhere else.
+ * Primary navigation, thumb-height at the bottom of the screen. Three items:
+ * what needs doing, the enquiries that feed the business, the clients that
+ * pay for it. If a fourth is being added, check it against the design note.
  */
 const LINKS = [
   { href: "/", label: "Today", icon: Home },
   { href: "/enquiries", label: "Enquiries", icon: Inbox },
+  { href: "/clients", label: "Clients", icon: Users },
 ] as const;
 
 export function BottomNav() {
