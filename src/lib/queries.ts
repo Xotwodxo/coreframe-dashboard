@@ -157,7 +157,7 @@ export async function getClientEnquiries(clientId: string) {
 }
 
 export interface OpenRequest extends ChangeRequest {
-  client: Pick<Client, "id" | "name"> | null;
+  client: Pick<Client, "id" | "name" | "logo_path"> | null;
 }
 
 /** Requests not yet done, for Today. Scheduled ones first, soonest first. */
@@ -165,7 +165,7 @@ export async function getOpenRequests() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("requests")
-    .select("*, client:clients (id, name)")
+    .select("*, client:clients (id, name, logo_path)")
     .in("status", ["new", "scheduled"])
     .order("scheduled_for", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });

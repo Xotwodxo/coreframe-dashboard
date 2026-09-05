@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/dal";
 import { createClient as createSupabase } from "@/lib/supabase/server";
+import { LOGO_BUCKET, LOGO_MAX_BYTES, LOGO_TYPES } from "@/lib/logos";
 import { TIERS, isTier } from "@/lib/tiers";
 import type { PlanStatus, Tier } from "@/lib/types";
 
@@ -121,6 +122,45 @@ function readClientFields(formData: FormData): Parsed {
   };
 }
 
+/**
+ * Stores a new logo for the client and removes the previous file. Returns the
+ * new path, null when the form asked for removal, or undefined when the form
+ * left the logo alone. A failed upload never fails the save; it is reported.
+ */
+async function handleLogo(
+  supabase: Awaited<ReturnType<typeof createSupabase>>,
+  clientId: string,
+  currentPath: string | null,
+  formData: FormData
+): Promise<{ path?: string | null; error?: string }> {
+  const remove = formData.get("remove_logo") === "on";
+  const file = formData.get("logo");
+  const hasFile = file instanceof File && file.size > 0;
+
+  if (!remove && !hasFile) return {};
+
+  let newPath: string | null = null;
+  if (hasFile) {
+    const ext = LOGO_TYPES[file.type];
+    if (!ext) return { error: "Logo must be a PNG, JPG, WebP or SVG." };
+    if (file.size > LOGO_MAX_BYTES) return { error: "Logo must be under 2 MB." };
+    newPath = `${clientId}/logo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from(LOGO_BUCKET)
+      .upload(newPath, file, { contentType: file.type, upsert: false });
+    if (error) {
+      console.error("[clients] Logo upload failed.", error.message);
+      return { error: "Could not upload the logo." };
+    }
+  }
+
+  if (currentPath && currentPath !== newPath) {
+    await supabase.storage.from(LOGO_BUCKET).remove([currentPath]);
+  }
+
+  return { path: newPath };
+}
+
 export async function createClientAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireUser();
   const parsed = readClientFields(formData);
@@ -136,9 +176,15 @@ export async function createClientAction(_prev: ActionState, formData: FormData)
     };
   }
 
+  const newId = (data as { id: string }).id;
+  const logo = await handleLogo(supabase, newId, null, formData);
+  if (logo.path !== undefined) {
+    await supabase.from("clients").update({ logo_path: logo.path }).eq("id", newId);
+  }
+
   revalidatePath("/clients");
   revalidatePath("/");
-  redirect(`/clients/${(data as { id: string }).id}`);
+  redirect(`/clients/${newId}`);
 }
 
 export async function updateClientAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -149,7 +195,11 @@ export async function updateClientAction(_prev: ActionState, formData: FormData)
   if (parsed.error !== undefined) return { error: parsed.error };
 
   const supabase = await createSupabase();
-  const { error } = await supabase.from("clients").update(parsed.row).eq("id", id);
+  const { data: current } = await supabase.from("clients").select("logo_path").eq("id", id).maybeSingle();
+  const logo = await handleLogo(supabase, id, (current as { logo_path: string | null } | null)?.logo_path ?? null, formData);
+
+  const row = logo.path !== undefined ? { ...parsed.row, logo_path: logo.path } : parsed.row;
+  const { error } = await supabase.from("clients").update(row).eq("id", id);
   if (error) {
     console.error("[clients] Update failed.", error.message);
     return {
@@ -160,7 +210,7 @@ export async function updateClientAction(_prev: ActionState, formData: FormData)
   revalidatePath("/clients");
   revalidatePath(`/clients/${id}`);
   revalidatePath("/");
-  return { error: null, ok: "Saved." };
+  return logo.error ? { error: `Details saved, but: ${logo.error}` } : { error: null, ok: "Saved." };
 }
 
 export async function createRequestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

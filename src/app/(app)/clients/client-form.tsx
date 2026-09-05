@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { ClientMark } from "@/components/ui/client-mark";
 import { TIERS, TIER_KEYS } from "@/lib/tiers";
 import type { Client } from "@/lib/types";
 
@@ -79,6 +80,28 @@ export function ClientForm({ client }: { client?: Client }) {
           defaultValue={client ? (client.price_pence / 100).toString() : undefined}
           placeholder="Tier default"
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="logo">Logo</Label>
+        <div className="flex items-center gap-3">
+          {client ? <ClientMark name={client.name} logoPath={client.logo_path} /> : null}
+          <Input
+            id="logo"
+            name="logo"
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            className="file:mr-3 file:h-full file:rounded-md file:border-0 file:bg-muted file:px-3 file:text-sm file:font-medium file:text-foreground"
+          />
+        </div>
+        {client?.logo_path ? (
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <input type="checkbox" name="remove_logo" className="size-4 accent-[var(--cyan-action)]" />
+            Remove the current logo
+          </label>
+        ) : (
+          <p className="text-xs text-muted-foreground">PNG, JPG, WebP or SVG, under 2 MB. Square or wide both work.</p>
+        )}
       </div>
 
       <details className="rounded-xl border border-border">

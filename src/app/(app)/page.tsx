@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, CalendarClock, Clock, Wrench } from "lucide-react";
+import { ArrowRight, Clock } from "lucide-react";
 
+import { ClientMark } from "@/components/ui/client-mark";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -90,7 +91,7 @@ export default async function TodayPage() {
                   href={`/clients/${request.client_id}`}
                   className="flex items-center gap-3 rounded-xl border border-border p-4 transition-colors hover:border-cyan-action/40 hover:bg-muted/50"
                 >
-                  <Wrench className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <ClientMark name={request.client?.name ?? "Client"} logoPath={request.client?.logo_path ?? null} size="sm" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-navy">{request.client?.name ?? "Client"}</p>
                     <p className="truncate text-sm text-muted-foreground">{request.description}</p>
@@ -128,7 +129,7 @@ export default async function TodayPage() {
                         : "border-border hover:border-cyan-action/40"
                     )}
                   >
-                    <CalendarClock className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    <ClientMark name={client.name} logoPath={client.logo_path} size="sm" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-navy">{client.name}</p>
                       <p className="truncate text-sm text-muted-foreground">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Plus } from "lucide-react";
 
+import { ClientMark } from "@/components/ui/client-mark";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -42,6 +43,7 @@ export default async function ClientsPage() {
                 href={`/clients/${client.id}`}
                 className="flex items-center gap-3 rounded-xl border border-border p-4 transition-colors hover:border-cyan-action/40 hover:bg-muted/50"
               >
+                <ClientMark name={client.name} logoPath={client.logo_path} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-navy">{client.name}</p>
                   <p className="truncate text-sm text-muted-foreground">

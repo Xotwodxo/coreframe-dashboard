@@ -56,6 +56,8 @@ export interface Client {
   allowance_minutes: number | null;
   allowance_cap_minutes: number | null;
   notes: string | null;
+  /** Path inside the public client-logos bucket, or null for the initials mark. */
+  logo_path: string | null;
   created_at: string;
 }
 

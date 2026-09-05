@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Globe, Mail, Phone } from "lucide-react";
 
+import { ClientMark } from "@/components/ui/client-mark";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatDateTime, formatMinutes, formatPence, formatRelative, telHref } from "@/lib/format";
@@ -63,11 +64,14 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
       </Link>
 
       <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{client.name}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {tier.label} · {formatPence(client.price_pence)} a month
-          </p>
+        <div className="flex items-center gap-4">
+          <ClientMark name={client.name} logoPath={client.logo_path} size="lg" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{client.name}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {tier.label} · {formatPence(client.price_pence)} a month
+            </p>
+          </div>
         </div>
         <StatusBadge status={client.plan_status} />
       </div>
