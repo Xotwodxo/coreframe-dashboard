@@ -38,12 +38,13 @@ Three things about this stack that will bite you if you assume otherwise:
 | `/enquiries/[id]` | Everything submitted, call and email, status change |
 | `/clients` | Care plan clients, allowance left, add a client |
 | `/clients/[id]` | Plan, allowance ledger, change requests, edit |
+| `/kit` | The reply kit: reply wording, the document shelf, payment links |
 | `/login` | Email and password, one user, no sign-up |
 | `/api/enquiries` | Intake from the website, shared secret |
 | `/api/webhooks/stripe` | Plan status, renewals and monthly allowance credits |
 
-Eight routes. Phase 3 is the client-facing half in the client dashboard
-design. Resist adding anything else here.
+Nine routes. The client-facing half of the client dashboard design is parked
+until the second care plan is sold. Resist adding anything else here.
 
 ## Getting it running
 
@@ -112,6 +113,20 @@ its signing secret as `STRIPE_WEBHOOK_SECRET`. No Stripe secret key is needed:
 everything the app has to know arrives inside the signed event. The client's
 `stripe_customer_id` is what links an event to a row; an event for an unknown
 customer is logged and ignored.
+
+## The reply kit
+
+Reply on an enquiry opens the phone's mail app with the first response filled
+in and marks the enquiry replied in the same tap. The wording lives in the
+`settings` table and is edited on `/kit`, with placeholders for the first
+name, the service, the booking link and the guide. The guide is the first
+document on the shelf whose "offered for" list matches the enquiry's service
+or page; `*` marks the fallback.
+
+Documents are PDFs in the public `documents` bucket. Replacing a file uploads
+a new one and leaves the old in place, so links already sent keep working.
+Payment links are in `src/lib/payment-links.ts` on purpose: a wrong link takes
+money to the wrong place, so changing one is a reviewed commit.
 
 ## Enquiry lifecycle
 

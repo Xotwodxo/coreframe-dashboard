@@ -2,12 +2,16 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { isOverdue } from "@/lib/enquiry-status";
+import { DEFAULT_REPLY } from "@/lib/reply";
 import type {
   ChangeRequest,
   Client,
+  DocumentRow,
   Enquiry,
+  EnquiryNote,
   EnquiryStatus,
   LedgerEntry,
+  ReplySettings,
 } from "@/lib/types";
 
 /**
@@ -184,4 +188,82 @@ export async function getRenewals(days = 14) {
     .order("renews_on", { ascending: true, nullsFirst: false });
   warn("getRenewals", error?.message);
   return (data ?? []) as Client[];
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: notes, documents, reply settings, pipeline numbers
+// ---------------------------------------------------------------------------
+
+export async function getEnquiryNotes(enquiryId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("enquiry_notes")
+    .select("*")
+    .eq("enquiry_id", enquiryId)
+    .order("created_at", { ascending: false });
+  warn("getEnquiryNotes", error?.message);
+  return (data ?? []) as EnquiryNote[];
+}
+
+export async function getDocuments() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("documents")
+    .select("*")
+    .order("sort_order")
+    .order("title");
+  warn("getDocuments", error?.message);
+  return (data ?? []) as DocumentRow[];
+}
+
+export async function getReplySettings(): Promise<ReplySettings> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("settings").select("value").eq("key", "reply").maybeSingle();
+  warn("getReplySettings", error?.message);
+  const value = (data as { value: Partial<ReplySettings> } | null)?.value;
+  return {
+    subject: value?.subject ?? DEFAULT_REPLY.subject,
+    body: value?.body ?? DEFAULT_REPLY.body,
+    bookingLink: value?.bookingLink ?? DEFAULT_REPLY.bookingLink,
+  };
+}
+
+/** Quoted and won this calendar month, in pence. Zero when nothing yet. */
+export async function getPipelineThisMonth() {
+  const supabase = await createClient();
+  const start = new Date();
+  start.setUTCDate(1);
+  start.setUTCHours(0, 0, 0, 0);
+  const since = start.toISOString();
+
+  const [quoted, won] = await Promise.all([
+    supabase.from("enquiries").select("quoted_pence").gte("quoted_at", since).not("quoted_pence", "is", null),
+    supabase
+      .from("enquiries")
+      .select("quoted_pence")
+      .eq("status", "won")
+      .gte("status_changed_at", since)
+      .not("quoted_pence", "is", null),
+  ]);
+  warn("getPipelineThisMonth", quoted.error?.message ?? won.error?.message);
+  const sum = (rows: { quoted_pence: number | null }[] | null) =>
+    (rows ?? []).reduce((total, row) => total + (row.quoted_pence ?? 0), 0);
+  return { quotedPence: sum(quoted.data), wonPence: sum(won.data) };
+}
+
+/** Care plans renewing in the next `days`, for the Clients strip. */
+export async function getDueRenewals(days = 30) {
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const until = new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("clients")
+    .select("id, name, renews_on, price_pence, plan_status, logo_path")
+    .in("plan_status", ["active", "pending", "past_due"])
+    .gte("renews_on", today)
+    .lte("renews_on", until)
+    .order("renews_on");
+  warn("getDueRenewals", error?.message);
+  const rows = (data ?? []) as Pick<Client, "id" | "name" | "renews_on" | "price_pence" | "plan_status" | "logo_path">[];
+  return { rows, totalPence: rows.reduce((sum, row) => sum + row.price_pence, 0) };
 }

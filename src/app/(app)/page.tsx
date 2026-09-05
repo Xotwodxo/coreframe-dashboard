@@ -5,8 +5,8 @@ import { ClientMark } from "@/components/ui/client-mark";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { daysUntil, formatDate, formatMinutes, formatRelative } from "@/lib/format";
-import { getOpenRequests, getRenewals, getWaitingEnquiries } from "@/lib/queries";
+import { daysUntil, formatDate, formatMinutes, formatPence, formatRelative } from "@/lib/format";
+import { getOpenRequests, getPipelineThisMonth, getRenewals, getWaitingEnquiries } from "@/lib/queries";
 import { TIERS } from "@/lib/tiers";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +20,11 @@ export const dynamic = "force-dynamic";
  * the only behaviour phase 1 is meant to change.
  */
 export default async function TodayPage() {
-  const [waiting, requests, renewals] = await Promise.all([
+  const [waiting, requests, renewals, pipeline] = await Promise.all([
     getWaitingEnquiries(),
     getOpenRequests(),
     getRenewals(14),
+    getPipelineThisMonth(),
   ]);
   const overdue = waiting.filter((enquiry) => enquiry.overdue);
 
@@ -78,6 +79,13 @@ export default async function TodayPage() {
           })}
         </ul>
       )}
+
+      {pipeline.quotedPence > 0 || pipeline.wonPence > 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          This month: <span className="font-medium text-navy tabular-nums">{formatPence(pipeline.quotedPence)}</span> quoted,{" "}
+          <span className="font-medium text-good tabular-nums">{formatPence(pipeline.wonPence)}</span> won.
+        </p>
+      ) : null}
 
       {requests.length > 0 ? (
         <>

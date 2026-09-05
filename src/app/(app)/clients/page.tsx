@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatMinutes, formatPence } from "@/lib/format";
-import { getClients } from "@/lib/queries";
+import { getClients, getDueRenewals } from "@/lib/queries";
 import { TIERS } from "@/lib/tiers";
 
 import { ClientForm } from "./client-form";
@@ -14,7 +14,7 @@ import { ClientForm } from "./client-form";
 export const dynamic = "force-dynamic";
 
 export default async function ClientsPage() {
-  const clients = await getClients();
+  const [clients, due] = await Promise.all([getClients(), getDueRenewals(30)]);
   const monthly = clients
     .filter((client) => client.plan_status === "active")
     .reduce((sum, client) => sum + client.price_pence, 0);
@@ -29,6 +29,26 @@ export default async function ClientsPage() {
             : `${clients.length} on a plan, ${formatPence(monthly)} a month billing.`
         }
       />
+
+      {due.rows.length > 0 ? (
+        <div className="mb-4 rounded-xl border border-border bg-muted/40 p-4">
+          <p className="text-sm text-muted-foreground">Due in the next 30 days</p>
+          <p className="mt-0.5 text-2xl font-bold tracking-tight text-navy tabular-nums">{formatPence(due.totalPence)}</p>
+          <ul className="mt-2 space-y-1 text-sm">
+            {due.rows.map((row) => (
+              <li key={row.id} className="flex justify-between gap-3">
+                <span className="truncate">
+                  {row.name}
+                  {row.plan_status === "pending" ? <span className="text-muted-foreground"> (first payment)</span> : null}
+                </span>
+                <span className="shrink-0 text-muted-foreground tabular-nums">
+                  {formatDate(row.renews_on)} · {formatPence(row.price_pence)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {clients.length === 0 ? (
         <EmptyState

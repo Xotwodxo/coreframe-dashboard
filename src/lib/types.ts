@@ -25,6 +25,34 @@ export interface Enquiry {
   status: EnquiryStatus;
   status_changed_at: string | null;
   nudge_sent_at: string | null;
+  /** What was quoted, in pence. Null until a quote is recorded. */
+  quoted_pence: number | null;
+  quoted_at: string | null;
+}
+
+export interface EnquiryNote {
+  id: string;
+  enquiry_id: string;
+  created_at: string;
+  body: string;
+}
+
+export interface DocumentRow {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  storage_path: string;
+  /** Comma-separated service options or pages this is offered for. "*" marks the default guide. */
+  for_services: string | null;
+  sort_order: number;
+  updated_at: string;
+}
+
+export interface ReplySettings {
+  subject: string;
+  body: string;
+  bookingLink: string;
 }
 
 export type Tier =

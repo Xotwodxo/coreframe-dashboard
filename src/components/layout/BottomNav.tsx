@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Inbox, Users } from "lucide-react";
+import { Home, Inbox, Send, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 /**
- * Primary navigation, thumb-height at the bottom of the screen. Three items:
+ * Primary navigation, thumb-height at the bottom of the screen. Four items:
  * what needs doing, the enquiries that feed the business, the clients that
- * pay for it. If a fourth is being added, check it against the design note.
+ * pay for it, and the kit that answers an enquiry. That is the lot.
  */
 const LINKS = [
   { href: "/", label: "Today", icon: Home },
   { href: "/enquiries", label: "Enquiries", icon: Inbox },
   { href: "/clients", label: "Clients", icon: Users },
+  { href: "/kit", label: "Kit", icon: Send },
 ] as const;
 
 export function BottomNav() {
