@@ -67,7 +67,12 @@ export function paymentText(quote: Pick<Quote, "lines" | "deposit_pct">, templat
  * The covering email. Placeholders: {first_name} {quote_number} {total}
  * {summary} {valid_until} {quote_link}.
  */
-export function buildQuoteEmail(quote: Quote, settings: QuoteSettings, link: string) {
+export function buildQuoteEmail(
+  quote: Quote,
+  settings: QuoteSettings,
+  link: string,
+  options: { attached: boolean } = { attached: true }
+) {
   const summaryLines = quote.lines
     .map((line) => {
       const qty = line.quantity !== 1 ? ` x ${line.quantity}` : "";
@@ -83,8 +88,21 @@ export function buildQuoteEmail(quote: Quote, settings: QuoteSettings, link: str
       .replaceAll("{summary}", summaryLines)
       .replaceAll("{valid_until}", formatLongDate(validUntil(quote)))
       .replaceAll("{quote_link}", link);
+  // With the PDF attached the link is noise, and on a phone a signed URL is
+  // several screens of noise. Drop any line carrying it. Without the
+  // attachment the link is the only way to the PDF, so make sure it is there.
+  let template = settings.body;
+  if (options.attached) {
+    template = template
+      .split("\n")
+      .filter((line) => !line.includes("{quote_link}"))
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n");
+  } else if (!template.includes("{quote_link}")) {
+    template = `${template.trimEnd()}\n\nOpen the quote here:\n{quote_link}`;
+  }
   const subject = fill(settings.subject);
-  const body = fill(settings.body);
+  const body = fill(template);
   const mailto = quote.to_email
     ? `mailto:${quote.to_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     : null;

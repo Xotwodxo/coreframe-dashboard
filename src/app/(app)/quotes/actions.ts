@@ -176,11 +176,12 @@ export async function sendQuoteAction(
   }
 
   const link = (await signedQuoteUrl(supabase, pdfPath)) ?? "";
-  const email = buildQuoteEmail(forRender, conf, link);
-
-  let delivered = false;
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
+  const canAttach = Boolean(apiKey && from);
+  const email = buildQuoteEmail(forRender, conf, link, { attached: canAttach });
+
+  let delivered = false;
   if (apiKey && from) {
     const { data: file } = await supabase.storage.from("quotes").download(pdfPath);
     const content = file ? Buffer.from(await file.arrayBuffer()).toString("base64") : null;
