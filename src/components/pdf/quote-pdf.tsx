@@ -158,24 +158,24 @@ export function QuotePdf({ quote, settings, paymentText }: { quote: Quote; setti
               <Text style={styles.totalAmt}>{formatPence(monthly)} / month</Text>
             </View>
           ) : null}
-          <Text style={{ fontSize: 9, color: MUTED, marginTop: 4 }}>Prices exclude VAT. Coreframe Digital is not VAT registered.</Text>
+          <Text style={{ fontSize: 9, color: MUTED, marginTop: 4 }}>Prices exclude VAT.</Text>
         </View>
 
         {quote.not_included ? (
-          <View style={styles.section}>
+          <View style={styles.section} wrap={false}>
             <Text style={styles.h2}>Not included</Text>
             <Lines text={quote.not_included} />
           </View>
         ) : null}
 
         {quote.timeline ? (
-          <View style={styles.section}>
+          <View style={styles.section} wrap={false}>
             <Text style={styles.h2}>Timeline</Text>
             <Lines text={quote.timeline} />
           </View>
         ) : null}
 
-        <View style={styles.section}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.h2}>Payment</Text>
           {oneOff > 0 ? (
             <View style={{ flexDirection: "row", marginBottom: 6 }}>
@@ -192,7 +192,7 @@ export function QuotePdf({ quote, settings, paymentText }: { quote: Quote; setti
           <Text>{paymentText}</Text>
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.h2}>Next step</Text>
           <View style={styles.callout}>
             <Text>{settings.nextStep}</Text>

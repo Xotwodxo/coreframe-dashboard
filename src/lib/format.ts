@@ -51,15 +51,12 @@ export function telHref(phone: string): string {
  * Money is stored, passed around and totalled as integer pence. It becomes a
  * string only at the point it is shown.
  */
-const GBP = new Intl.NumberFormat("en-GB", {
-  style: "currency",
-  currency: "GBP",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
+const GBP_WHOLE = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const GBP_PENCE = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+/** "£1,250" for whole pounds, "£997.50" when there are pence. Never "£997.5". */
 export function formatPence(pence: number): string {
-  return GBP.format(pence / 100);
+  return (pence % 100 === 0 ? GBP_WHOLE : GBP_PENCE).format(pence / 100);
 }
 
 /** "1 hr 15 min", "45 min", "2 hrs". Time is integer minutes everywhere. */
