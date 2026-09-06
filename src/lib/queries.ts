@@ -17,6 +17,7 @@ import type {
   QuoteSettings,
   ReplySettings,
   ReviewSettings,
+  Todo,
 } from "@/lib/types";
 
 /**
@@ -335,4 +336,42 @@ export async function getQuoteSettings(): Promise<QuoteSettings> {
   warn("getQuoteSettings", error?.message);
   const value = (data as { value: Partial<QuoteSettings> } | null)?.value ?? {};
   return { ...DEFAULT_QUOTE_SETTINGS, ...value };
+}
+
+// ---------------------------------------------------------------------------
+// To-do list
+// ---------------------------------------------------------------------------
+
+/** Open items: dated ones first, soonest first, then undated by age. */
+export async function getOpenTodos() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("todos")
+    .select("*")
+    .is("done_at", null)
+    .order("due_on", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
+  warn("getOpenTodos", error?.message);
+  return (data ?? []) as Todo[];
+}
+
+export async function getDoneTodos(limit = 20) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("todos")
+    .select("*")
+    .not("done_at", "is", null)
+    .order("done_at", { ascending: false })
+    .limit(limit);
+  warn("getDoneTodos", error?.message);
+  return (data ?? []) as Todo[];
+}
+
+/** For Today: anything due today or earlier, plus undated items, capped. */
+export async function getTodayTodos(limit = 6) {
+  const open = await getOpenTodos();
+  const today = new Date().toISOString().slice(0, 10);
+  const due = open.filter((todo) => todo.due_on && todo.due_on <= today);
+  const undated = open.filter((todo) => !todo.due_on);
+  return { items: [...due, ...undated].slice(0, limit), total: open.length };
 }

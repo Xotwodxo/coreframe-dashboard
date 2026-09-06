@@ -40,11 +40,12 @@ Three things about this stack that will bite you if you assume otherwise:
 | `/clients/[id]` | Plan, allowance ledger, change requests, edit |
 | `/quotes/[id]` | Build, send, and decide a quote; branded PDF in a private bucket |
 | `/kit` | Reply wording, document shelf, payment links, review ask, price list, quote wording |
+| `/todo` | A short to-do list; dated items surface on Today when due |
 | `/login` | Email and password, one user, no sign-up |
 | `/api/enquiries` | Intake from the website, shared secret |
 | `/api/webhooks/stripe` | Plan status, renewals and monthly allowance credits |
 
-Ten routes. The client-facing half of the client dashboard design is parked
+Eleven routes. The client-facing half of the client dashboard design is parked
 until the second care plan is sold. Resist adding anything else here.
 
 ## Getting it running

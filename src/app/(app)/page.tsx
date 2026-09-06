@@ -3,10 +3,11 @@ import { ArrowRight, Clock } from "lucide-react";
 
 import { ClientMark } from "@/components/ui/client-mark";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TodoItem } from "@/components/ui/todo-item";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { daysUntil, formatDate, formatMinutes, formatPence, formatRelative } from "@/lib/format";
-import { getExpiredQuotes, getOpenRequests, getPipelineThisMonth, getRenewals, getWaitingEnquiries } from "@/lib/queries";
+import { getExpiredQuotes, getOpenRequests, getPipelineThisMonth, getRenewals, getTodayTodos, getWaitingEnquiries } from "@/lib/queries";
 import { summarise } from "@/lib/quotes";
 import { TIERS } from "@/lib/tiers";
 import { cn } from "@/lib/utils";
@@ -21,12 +22,13 @@ export const dynamic = "force-dynamic";
  * the only behaviour phase 1 is meant to change.
  */
 export default async function TodayPage() {
-  const [waiting, requests, renewals, pipeline, expiredQuotes] = await Promise.all([
+  const [waiting, requests, renewals, pipeline, expiredQuotes, todos] = await Promise.all([
     getWaitingEnquiries(),
     getOpenRequests(),
     getRenewals(14),
     getPipelineThisMonth(),
     getExpiredQuotes(),
+    getTodayTodos(),
   ]);
   const overdue = waiting.filter((enquiry) => enquiry.overdue);
 
@@ -87,6 +89,22 @@ export default async function TodayPage() {
           This month: <span className="font-medium text-navy tabular-nums">{formatPence(pipeline.quotedPence)}</span> quoted,{" "}
           <span className="font-medium text-good tabular-nums">{formatPence(pipeline.wonPence)}</span> won.
         </p>
+      ) : null}
+
+      {todos.items.length > 0 ? (
+        <>
+          <h2 className="mt-8 mb-3 flex items-baseline justify-between text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+            To do
+            <Link href="/todo" className="text-xs font-medium normal-case tracking-normal text-cyan-action">
+              All {todos.total}
+            </Link>
+          </h2>
+          <ul className="divide-y divide-border rounded-xl border border-border">
+            {todos.items.map((todo) => (
+              <TodoItem key={todo.id} todo={todo} />
+            ))}
+          </ul>
+        </>
       ) : null}
 
       {expiredQuotes.length > 0 ? (

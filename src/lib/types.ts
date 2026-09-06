@@ -182,3 +182,11 @@ export interface QuoteSettings {
   validDays: number;
   depositPct: number;
 }
+
+export interface Todo {
+  id: string;
+  body: string;
+  due_on: string | null;
+  done_at: string | null;
+  created_at: string;
+}
