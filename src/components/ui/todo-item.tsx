@@ -26,7 +26,14 @@ export function TodoItem({ todo, showDelete = false }: { todo: Todo; showDelete?
           aria-label={done ? "Mark not done" : "Mark done"}
         />
         <span className="min-w-0">
-          <span className={cn("block text-sm", done && "text-muted-foreground line-through")}>{todo.body}</span>
+          <span className={cn("block text-sm whitespace-pre-wrap", done && "text-muted-foreground line-through")}>
+            {todo.priority >= 2 && !done ? (
+              <span className={cn("mr-1.5 font-bold", todo.priority === 3 ? "text-bad" : "text-warn")} aria-label="High priority">
+                !
+              </span>
+            ) : null}
+            <Body body={todo.body} />
+          </span>
           {todo.due_on ? (
             <span
               className={cn(
@@ -62,5 +69,17 @@ export function TodoItem({ todo, showDelete = false }: { todo: Todo; showDelete?
         </button>
       ) : null}
     </li>
+  );
+}
+
+/** First line bold, the rest as detail. */
+function Body({ body }: { body: string }) {
+  const [title, ...rest] = body.split("\n");
+  const detail = rest.join("\n").trim();
+  return (
+    <>
+      <span className="font-medium">{title}</span>
+      {detail ? <span className="block text-xs leading-relaxed text-muted-foreground">{detail}</span> : null}
+    </>
   );
 }

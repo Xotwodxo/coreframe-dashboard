@@ -20,9 +20,10 @@ export async function addTodoAction(_prev: TodoState, formData: FormData): Promi
   const due = String(formData.get("due_on") ?? "").trim();
   if (!body) return { error: "Write the thing to do." };
   if (due && !/^\d{4}-\d{2}-\d{2}$/.test(due)) return { error: "The date is not valid." };
+  const priority = [0, 1, 2, 3].includes(Number(formData.get("priority"))) ? Number(formData.get("priority")) : 0;
 
   const supabase = await createClient();
-  const { error } = await supabase.from("todos").insert({ body, due_on: due || null });
+  const { error } = await supabase.from("todos").insert({ body, due_on: due || null, priority });
   if (error) {
     console.error("[todo] Add failed.", error.message);
     return { error: "Could not add it." };

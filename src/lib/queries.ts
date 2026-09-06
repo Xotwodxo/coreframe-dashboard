@@ -342,7 +342,7 @@ export async function getQuoteSettings(): Promise<QuoteSettings> {
 // To-do list
 // ---------------------------------------------------------------------------
 
-/** Open items: dated ones first, soonest first, then undated by age. */
+/** Open items: dated ones first, soonest first, then by priority, then by age. */
 export async function getOpenTodos() {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -350,6 +350,7 @@ export async function getOpenTodos() {
     .select("*")
     .is("done_at", null)
     .order("due_on", { ascending: true, nullsFirst: false })
+    .order("priority", { ascending: false })
     .order("created_at", { ascending: true });
   warn("getOpenTodos", error?.message);
   return (data ?? []) as Todo[];
@@ -372,6 +373,7 @@ export async function getTodayTodos(limit = 6) {
   const open = await getOpenTodos();
   const today = new Date().toISOString().slice(0, 10);
   const due = open.filter((todo) => todo.due_on && todo.due_on <= today);
-  const undated = open.filter((todo) => !todo.due_on);
-  return { items: [...due, ...undated].slice(0, limit), total: open.length };
+  // Undated items only reach Today when they carry a high priority.
+  const urgent = open.filter((todo) => !todo.due_on && todo.priority >= 2);
+  return { items: [...due, ...urgent].slice(0, limit), total: open.length };
 }

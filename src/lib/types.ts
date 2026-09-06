@@ -188,5 +188,9 @@ export interface Todo {
   body: string;
   due_on: string | null;
   done_at: string | null;
+  /** 3 highest, 2 high, 1 medium, 0 none. From the vault's task hub markers. */
+  priority: number;
+  /** Vault path for an imported item, null for one added in the app. */
+  source: string | null;
   created_at: string;
 }
