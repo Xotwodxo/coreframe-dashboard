@@ -66,6 +66,31 @@ export async function saveReplyAction(_prev: KitState, formData: FormData): Prom
   return { error: null, ok: "Saved." };
 }
 
+export async function saveReviewAction(_prev: KitState, formData: FormData): Promise<KitState> {
+  await requireUser();
+  const subject = text(formData, "subject", 200);
+  const body = text(formData, "body", 5000);
+  const googleUrl = text(formData, "googleUrl", 500);
+  const trustpilotUrl = text(formData, "trustpilotUrl", 500);
+  if (!subject || !body) return { error: "Subject and body are both needed." };
+  for (const url of [googleUrl, trustpilotUrl]) {
+    if (url && !/^https:\/\//.test(url)) return { error: "Links must start with https://." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("settings")
+    .upsert({ key: "review", value: { subject, body, googleUrl, trustpilotUrl }, updated_at: new Date().toISOString() });
+  if (error) {
+    console.error("[kit] Save review failed.", error.message);
+    return { error: "Could not save the wording." };
+  }
+  revalidatePath("/kit");
+  revalidatePath("/clients", "layout");
+  revalidatePath("/enquiries", "layout");
+  return { error: null, ok: "Saved." };
+}
+
 export async function addDocumentAction(_prev: KitState, formData: FormData): Promise<KitState> {
   await requireUser();
   const title = text(formData, "title", 120);

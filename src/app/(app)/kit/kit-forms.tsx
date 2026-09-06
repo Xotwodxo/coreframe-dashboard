@@ -8,12 +8,13 @@ import { FormMessage } from "@/components/ui/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { DocumentRow, ReplySettings } from "@/lib/types";
+import type { DocumentRow, ReplySettings, ReviewSettings } from "@/lib/types";
 
 import {
   addDocumentAction,
   deleteDocumentAction,
   saveReplyAction,
+  saveReviewAction,
   updateDocumentAction,
   type KitState,
 } from "./actions";
@@ -135,5 +136,40 @@ export function EditDocumentForm({ doc }: { doc: DocumentRow }) {
         </Button>
       </form>
     </div>
+  );
+}
+
+export function ReviewWordingForm({ settings }: { settings: ReviewSettings }) {
+  const [state, action, pending] = useActionState(saveReviewAction, initial);
+  return (
+    <form action={action} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="googleUrl">Google review link</Label>
+          <Input id="googleUrl" name="googleUrl" type="url" defaultValue={settings.googleUrl} placeholder="https://g.page/r/.../review" className="font-mono text-sm" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="trustpilotUrl">Trustpilot link</Label>
+          <Input id="trustpilotUrl" name="trustpilotUrl" type="url" defaultValue={settings.trustpilotUrl} className="font-mono text-sm" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="review-subject">Subject</Label>
+        <Input id="review-subject" name="subject" defaultValue={settings.subject} required />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="review-body">Email</Label>
+        <Textarea id="review-body" name="body" defaultValue={settings.body} rows={12} required className="font-mono text-sm" />
+        <p className="text-xs text-muted-foreground">
+          Placeholders: <code>{"{first_name}"}</code> <code>{"{business}"}</code> <code>{"{google_link}"}</code>{" "}
+          <code>{"{trustpilot_link}"}</code>. A line whose link is blank is left out.
+        </p>
+      </div>
+      <FormMessage error={state.error} ok={state.ok} />
+      <Button type="submit" disabled={pending}>
+        <Save data-icon="inline-start" />
+        {pending ? "Saving..." : "Save wording"}
+      </Button>
+    </form>
   );
 }

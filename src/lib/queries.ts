@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { isOverdue } from "@/lib/enquiry-status";
-import { DEFAULT_REPLY } from "@/lib/reply";
+import { DEFAULT_REPLY, DEFAULT_REVIEW } from "@/lib/reply";
 import type {
   ChangeRequest,
   Client,
@@ -12,6 +12,7 @@ import type {
   EnquiryStatus,
   LedgerEntry,
   ReplySettings,
+  ReviewSettings,
 } from "@/lib/types";
 
 /**
@@ -266,4 +267,17 @@ export async function getDueRenewals(days = 30) {
   warn("getDueRenewals", error?.message);
   const rows = (data ?? []) as Pick<Client, "id" | "name" | "renews_on" | "price_pence" | "plan_status" | "logo_path">[];
   return { rows, totalPence: rows.reduce((sum, row) => sum + row.price_pence, 0) };
+}
+
+export async function getReviewSettings(): Promise<ReviewSettings> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("settings").select("value").eq("key", "review").maybeSingle();
+  warn("getReviewSettings", error?.message);
+  const value = (data as { value: Partial<ReviewSettings> } | null)?.value;
+  return {
+    subject: value?.subject ?? DEFAULT_REVIEW.subject,
+    body: value?.body ?? DEFAULT_REVIEW.body,
+    googleUrl: value?.googleUrl ?? DEFAULT_REVIEW.googleUrl,
+    trustpilotUrl: value?.trustpilotUrl ?? DEFAULT_REVIEW.trustpilotUrl,
+  };
 }

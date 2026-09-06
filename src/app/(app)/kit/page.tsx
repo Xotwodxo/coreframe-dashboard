@@ -4,10 +4,10 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatDate } from "@/lib/format";
 import { PAYMENT_LINKS } from "@/lib/payment-links";
-import { getDocuments, getReplySettings } from "@/lib/queries";
+import { getDocuments, getReplySettings, getReviewSettings } from "@/lib/queries";
 import { documentUrl } from "@/lib/reply";
 
-import { AddDocumentForm, EditDocumentForm, ReplyWordingForm } from "./kit-forms";
+import { AddDocumentForm, EditDocumentForm, ReplyWordingForm, ReviewWordingForm } from "./kit-forms";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
  * the payment links. Everything a first response needs, editable from a phone.
  */
 export default async function KitPage() {
-  const [settings, documents] = await Promise.all([getReplySettings(), getDocuments()]);
+  const [settings, documents, review] = await Promise.all([getReplySettings(), getDocuments(), getReviewSettings()]);
 
   return (
     <>
@@ -100,6 +100,13 @@ export default async function KitPage() {
 
       <SectionTitle>Reply wording</SectionTitle>
       <ReplyWordingForm settings={settings} />
+
+      <SectionTitle>Review ask</SectionTitle>
+      <p className="mb-3 text-sm text-muted-foreground">
+        What Ask for a review sends, from a client page or a won enquiry. Paste your Google review link from
+        Business Profile; the Trustpilot address works without a claimed profile.
+      </p>
+      <ReviewWordingForm settings={review} />
     </>
   );
 }

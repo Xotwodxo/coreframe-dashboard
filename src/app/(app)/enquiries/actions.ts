@@ -128,3 +128,10 @@ export async function setQuotedAction(_prev: NoteState, formData: FormData): Pro
   revalidatePath(`/enquiries/${id}`);
   return { error: null };
 }
+
+/** Called when Charlie taps Ask for a review on a won enquiry. Recorded as a note. */
+export async function recordEnquiryReviewAsk(id: string) {
+  await requireUser();
+  await note(id, "Asked for a review by email");
+  revalidatePath(`/enquiries/${id}`);
+}

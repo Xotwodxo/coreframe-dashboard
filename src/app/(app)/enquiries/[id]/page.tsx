@@ -6,10 +6,12 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDateTime, formatPence, telHref } from "@/lib/format";
 import { PAYMENT_LINKS, paymentLinkFor } from "@/lib/payment-links";
-import { getDocuments, getEnquiry, getEnquiryNotes, getReplySettings } from "@/lib/queries";
-import { buildReply, documentUrl, documentsFor } from "@/lib/reply";
+import { AskReviewButton } from "@/components/ui/ask-review-button";
+import { getDocuments, getEnquiry, getEnquiryNotes, getReplySettings, getReviewSettings } from "@/lib/queries";
+import { buildReply, buildReviewAsk, documentUrl, documentsFor } from "@/lib/reply";
 import { cn } from "@/lib/utils";
 
+import { recordEnquiryReviewAsk } from "../actions";
 import { EnquiryActions } from "./enquiry-actions";
 import { NoteForm, QuotedForm, ReplyButton, SendList, type SendItem } from "./reply-kit";
 
@@ -37,11 +39,21 @@ export default async function EnquiryPage({ params }: PageProps<"/enquiries/[id]
   const enquiry = await getEnquiry(id);
   if (!enquiry) notFound();
 
-  const [notes, documents, settings] = await Promise.all([
+  const [notes, documents, settings, reviewSettings] = await Promise.all([
     getEnquiryNotes(id),
     getDocuments(),
     getReplySettings(),
+    getReviewSettings(),
   ]);
+  const reviewAsk = buildReviewAsk(
+    { name: enquiry.name, email: enquiry.email, business: enquiry.business_name },
+    reviewSettings
+  );
+  const lastReviewAsk = notes.find((n) => n.body === "Asked for a review by email")?.created_at ?? null;
+  const recordAsk = async () => {
+    "use server";
+    await recordEnquiryReviewAsk(enquiry.id);
+  };
 
   const reply = buildReply(enquiry, settings, documents);
   const relevant = documentsFor(enquiry, documents);
@@ -129,6 +141,18 @@ export default async function EnquiryPage({ params }: PageProps<"/enquiries/[id]
         <>
           <SectionTitle>Quote</SectionTitle>
           <QuotedForm id={enquiry.id} current={enquiry.quoted_pence} />
+        </>
+      ) : null}
+
+      {enquiry.status === "won" ? (
+        <>
+          <SectionTitle>Review</SectionTitle>
+          <AskReviewButton
+            mailto={reviewAsk.mailto}
+            lastAsked={lastReviewAsk}
+            hasLinks={reviewAsk.hasLinks}
+            onTap={recordAsk}
+          />
         </>
       ) : null}
 

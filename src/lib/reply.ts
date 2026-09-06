@@ -1,4 +1,4 @@
-import type { DocumentRow, Enquiry, ReplySettings } from "@/lib/types";
+import type { DocumentRow, Enquiry, ReplySettings, ReviewSettings } from "@/lib/types";
 
 /**
  * Builds the first reply to an enquiry from the wording Charlie keeps in
@@ -87,3 +87,39 @@ export const DEFAULT_REPLY: ReplySettings = {
   body: "Hi {first_name},\n\nThanks for getting in touch about {service}.\n\n{booking_link}\n\n{guide_link}\n\nCharlie",
   bookingLink: "https://calendar.app.google/fnoabpMSScgeojgu5",
 };
+
+export const DEFAULT_REVIEW: ReviewSettings = {
+  subject: "Would you leave us a quick review?",
+  body: "Hi {first_name},\n\nIf you have two minutes, a short review would help other local businesses find us.\n\nGoogle: {google_link}\nTrustpilot: {trustpilot_link}\n\nThank you.\n\nCharlie",
+  googleUrl: "",
+  trustpilotUrl: "https://uk.trustpilot.com/evaluate/coreframedigital.co.uk",
+};
+
+/**
+ * The review ask, for a client or a won enquiry. Placeholders: {first_name}
+ * {business} {google_link} {trustpilot_link}. A line containing a link that is
+ * not set is dropped, so an empty Google link never sends "Google: " alone.
+ */
+export function buildReviewAsk(
+  recipient: { name: string; email: string | null; business: string | null },
+  settings: ReviewSettings
+) {
+  const fill = (text: string) =>
+    text
+      .replaceAll("{first_name}", firstName(recipient.name))
+      .replaceAll("{business}", recipient.business?.trim() || "your website")
+      .replaceAll("{google_link}", settings.googleUrl.trim())
+      .replaceAll("{trustpilot_link}", settings.trustpilotUrl.trim());
+
+  const body = settings.body
+    .split("\n")
+    .filter((line) => !(line.includes("{google_link}") && !settings.googleUrl.trim()))
+    .filter((line) => !(line.includes("{trustpilot_link}") && !settings.trustpilotUrl.trim()))
+    .map(fill)
+    .join("\n");
+  const subject = fill(settings.subject);
+  const mailto = recipient.email
+    ? `mailto:${recipient.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    : null;
+  return { subject, body, mailto, hasLinks: Boolean(settings.googleUrl.trim() || settings.trustpilotUrl.trim()) };
+}

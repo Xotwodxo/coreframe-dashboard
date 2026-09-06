@@ -345,3 +345,15 @@ export async function adjustAllowanceAction(_prev: ActionState, formData: FormDa
   revalidatePath("/clients");
   return { error: null, ok: "Recorded." };
 }
+
+/** Called when Charlie taps Ask for a review on a client. The tap is the record. */
+export async function recordClientReviewAsk(clientId: string) {
+  await requireUser();
+  const supabase = await createSupabase();
+  const { error } = await supabase
+    .from("clients")
+    .update({ review_requested_at: new Date().toISOString() })
+    .eq("id", clientId);
+  if (error) console.error("[clients] Review ask failed.", error.message);
+  revalidatePath(`/clients/${clientId}`);
+}

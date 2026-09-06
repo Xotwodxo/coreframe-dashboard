@@ -6,12 +6,15 @@ import { ClientMark } from "@/components/ui/client-mark";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatDateTime, formatMinutes, formatPence, formatRelative, telHref } from "@/lib/format";
-import { getClient, getClientEnquiries, getLedger, getRequests } from "@/lib/queries";
+import { AskReviewButton } from "@/components/ui/ask-review-button";
+import { getClient, getClientEnquiries, getLedger, getRequests, getReviewSettings } from "@/lib/queries";
+import { buildReviewAsk } from "@/lib/reply";
 import { TIERS } from "@/lib/tiers";
 import type { LedgerEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 import { ClientForm } from "../client-form";
+import { recordClientReviewAsk } from "../actions";
 import { AdjustForm, CompleteForm, NewRequestForm, ScheduleForm } from "./request-forms";
 
 export const dynamic = "force-dynamic";
@@ -45,11 +48,20 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
   const client = await getClient(id);
   if (!client) notFound();
 
-  const [ledger, requests, enquiries] = await Promise.all([
+  const [ledger, requests, enquiries, reviewSettings] = await Promise.all([
     getLedger(id),
     getRequests(id),
     getClientEnquiries(id),
+    getReviewSettings(),
   ]);
+  const reviewAsk = buildReviewAsk(
+    { name: client.contact_name || client.name, email: client.contact_email, business: client.name },
+    reviewSettings
+  );
+  const recordAsk = async () => {
+    "use server";
+    await recordClientReviewAsk(client.id);
+  };
 
   const tier = TIERS[client.tier];
   const hasAllowance = client.allowance_minutes !== null;
@@ -80,6 +92,15 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
         <Contact href={client.contact_phone ? telHref(client.contact_phone) : null} icon={Phone} label="Call" />
         <Contact href={client.contact_email ? `mailto:${client.contact_email}` : null} icon={Mail} label="Email" />
         <Contact href={client.domain ? `https://${client.domain}` : null} icon={Globe} label="Site" external />
+      </div>
+
+      <div className="mt-4">
+        <AskReviewButton
+          mailto={reviewAsk.mailto}
+          lastAsked={client.review_requested_at}
+          hasLinks={reviewAsk.hasLinks}
+          onTap={recordAsk}
+        />
       </div>
 
       {/* Allowance: the number that has to be right when a client asks. */}

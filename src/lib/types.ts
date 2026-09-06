@@ -55,6 +55,13 @@ export interface ReplySettings {
   bookingLink: string;
 }
 
+export interface ReviewSettings {
+  subject: string;
+  body: string;
+  googleUrl: string;
+  trustpilotUrl: string;
+}
+
 export type Tier =
   | "essential"
   | "managed"
@@ -86,6 +93,8 @@ export interface Client {
   notes: string | null;
   /** Path inside the public client-logos bucket, or null for the initials mark. */
   logo_path: string | null;
+  /** When Charlie last asked them for a review. */
+  review_requested_at: string | null;
   created_at: string;
 }
 
