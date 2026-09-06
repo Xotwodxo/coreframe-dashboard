@@ -7,7 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatDateTime, formatMinutes, formatPence, formatRelative, telHref } from "@/lib/format";
 import { AskReviewButton } from "@/components/ui/ask-review-button";
-import { getClient, getClientEnquiries, getLedger, getRequests, getReviewSettings } from "@/lib/queries";
+import { QuotesList } from "@/components/ui/quotes-list";
+import { getClient, getClientEnquiries, getLedger, getQuotesFor, getRequests, getReviewSettings } from "@/lib/queries";
 import { buildReviewAsk } from "@/lib/reply";
 import { TIERS } from "@/lib/tiers";
 import type { LedgerEntry } from "@/lib/types";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 import { ClientForm } from "../client-form";
 import { recordClientReviewAsk } from "../actions";
+import { createQuoteAction } from "../../quotes/actions";
 import { AdjustForm, CompleteForm, NewRequestForm, ScheduleForm } from "./request-forms";
 
 export const dynamic = "force-dynamic";
@@ -48,12 +50,17 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
   const client = await getClient(id);
   if (!client) notFound();
 
-  const [ledger, requests, enquiries, reviewSettings] = await Promise.all([
+  const [ledger, requests, enquiries, reviewSettings, quotes] = await Promise.all([
     getLedger(id),
     getRequests(id),
     getClientEnquiries(id),
     getReviewSettings(),
+    getQuotesFor({ clientId: id }),
   ]);
+  const newQuote = async () => {
+    "use server";
+    await createQuoteAction({ clientId: client.id });
+  };
   const reviewAsk = buildReviewAsk(
     { name: client.contact_name || client.name, email: client.contact_email, business: client.name },
     reviewSettings
@@ -181,6 +188,9 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
           ))}
         </ul>
       )}
+
+      <SectionTitle>Quotes</SectionTitle>
+      <QuotesList quotes={quotes} onNew={newQuote} />
 
       {hasAllowance ? (
         <>

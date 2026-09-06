@@ -4,10 +4,10 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatDate } from "@/lib/format";
 import { PAYMENT_LINKS } from "@/lib/payment-links";
-import { getDocuments, getReplySettings, getReviewSettings } from "@/lib/queries";
+import { getDocuments, getPriceItems, getQuoteSettings, getReplySettings, getReviewSettings } from "@/lib/queries";
 import { documentUrl } from "@/lib/reply";
 
-import { AddDocumentForm, EditDocumentForm, ReplyWordingForm, ReviewWordingForm } from "./kit-forms";
+import { AddDocumentForm, EditDocumentForm, PriceItemForm, PriceItemRow, QuoteWordingForm, ReplyWordingForm, ReviewWordingForm } from "./kit-forms";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,13 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
  * the payment links. Everything a first response needs, editable from a phone.
  */
 export default async function KitPage() {
-  const [settings, documents, review] = await Promise.all([getReplySettings(), getDocuments(), getReviewSettings()]);
+  const [settings, documents, review, priceItems, quoteSettings] = await Promise.all([
+    getReplySettings(),
+    getDocuments(),
+    getReviewSettings(),
+    getPriceItems(true),
+    getQuoteSettings(),
+  ]);
 
   return (
     <>
@@ -107,6 +113,26 @@ export default async function KitPage() {
         Business Profile; the Trustpilot address works without a claimed profile.
       </p>
       <ReviewWordingForm settings={review} />
+
+      <SectionTitle>Price list</SectionTitle>
+      <p className="mb-3 text-sm text-muted-foreground">
+        What the quote builder offers. Changing a price here never changes a quote already written; each quote
+        copies the figure when the line is added. Untick &quot;shown in the builder&quot; to retire an item.
+      </p>
+      <ul className="space-y-2">
+        {priceItems.map((item) => (
+          <PriceItemRow key={item.id} item={item} />
+        ))}
+      </ul>
+      <details className="mt-3 rounded-xl border border-border">
+        <summary className="cursor-pointer px-4 py-3 font-medium select-none">Add an item</summary>
+        <div className="border-t border-border p-4">
+          <PriceItemForm />
+        </div>
+      </details>
+
+      <SectionTitle>Quote wording</SectionTitle>
+      <QuoteWordingForm settings={quoteSettings} />
     </>
   );
 }

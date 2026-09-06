@@ -7,11 +7,13 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDateTime, formatPence, telHref } from "@/lib/format";
 import { PAYMENT_LINKS, paymentLinkFor } from "@/lib/payment-links";
 import { AskReviewButton } from "@/components/ui/ask-review-button";
-import { getDocuments, getEnquiry, getEnquiryNotes, getReplySettings, getReviewSettings } from "@/lib/queries";
+import { QuotesList } from "@/components/ui/quotes-list";
+import { getDocuments, getEnquiry, getEnquiryNotes, getQuotesFor, getReplySettings, getReviewSettings } from "@/lib/queries";
 import { buildReply, buildReviewAsk, documentUrl, documentsFor } from "@/lib/reply";
 import { cn } from "@/lib/utils";
 
 import { recordEnquiryReviewAsk } from "../actions";
+import { createQuoteAction } from "../../quotes/actions";
 import { EnquiryActions } from "./enquiry-actions";
 import { NoteForm, QuotedForm, ReplyButton, SendList, type SendItem } from "./reply-kit";
 
@@ -39,12 +41,17 @@ export default async function EnquiryPage({ params }: PageProps<"/enquiries/[id]
   const enquiry = await getEnquiry(id);
   if (!enquiry) notFound();
 
-  const [notes, documents, settings, reviewSettings] = await Promise.all([
+  const [notes, documents, settings, reviewSettings, quotes] = await Promise.all([
     getEnquiryNotes(id),
     getDocuments(),
     getReplySettings(),
     getReviewSettings(),
+    getQuotesFor({ enquiryId: id }),
   ]);
+  const newQuote = async () => {
+    "use server";
+    await createQuoteAction({ enquiryId: enquiry.id });
+  };
   const reviewAsk = buildReviewAsk(
     { name: enquiry.name, email: enquiry.email, business: enquiry.business_name },
     reviewSettings
@@ -137,11 +144,12 @@ export default async function EnquiryPage({ params }: PageProps<"/enquiries/[id]
         </details>
       ) : null}
 
-      {enquiry.status !== "new" ? (
-        <>
-          <SectionTitle>Quote</SectionTitle>
+      <SectionTitle>Quotes</SectionTitle>
+      <QuotesList quotes={quotes} onNew={newQuote} />
+      {enquiry.status !== "new" && quotes.length === 0 ? (
+        <div className="mt-3">
           <QuotedForm id={enquiry.id} current={enquiry.quoted_pence} />
-        </>
+        </div>
       ) : null}
 
       {enquiry.status === "won" ? (

@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { isOverdue } from "@/lib/enquiry-status";
+import { DEFAULT_QUOTE_SETTINGS, isExpired } from "@/lib/quotes";
 import { DEFAULT_REPLY, DEFAULT_REVIEW } from "@/lib/reply";
 import type {
   ChangeRequest,
@@ -11,6 +12,9 @@ import type {
   EnquiryNote,
   EnquiryStatus,
   LedgerEntry,
+  PriceItem,
+  Quote,
+  QuoteSettings,
   ReplySettings,
   ReviewSettings,
 } from "@/lib/types";
@@ -280,4 +284,55 @@ export async function getReviewSettings(): Promise<ReviewSettings> {
     googleUrl: value?.googleUrl ?? DEFAULT_REVIEW.googleUrl,
     trustpilotUrl: value?.trustpilotUrl ?? DEFAULT_REVIEW.trustpilotUrl,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: quotes
+// ---------------------------------------------------------------------------
+
+export async function getPriceItems(includeInactive = false) {
+  const supabase = await createClient();
+  let query = supabase.from("price_items").select("*").order("sort_order").order("name");
+  if (!includeInactive) query = query.eq("active", true);
+  const { data, error } = await query;
+  warn("getPriceItems", error?.message);
+  return (data ?? []) as PriceItem[];
+}
+
+export async function getQuote(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("quotes").select("*").eq("id", id).maybeSingle();
+  warn("getQuote", error?.message);
+  return (data ?? null) as Quote | null;
+}
+
+export async function getQuotesFor(ref: { enquiryId?: string; clientId?: string }) {
+  const supabase = await createClient();
+  let query = supabase.from("quotes").select("*").order("created_at", { ascending: false });
+  if (ref.enquiryId) query = query.eq("enquiry_id", ref.enquiryId);
+  else if (ref.clientId) query = query.eq("client_id", ref.clientId);
+  else return [] as Quote[];
+  const { data, error } = await query;
+  warn("getQuotesFor", error?.message);
+  return (data ?? []) as Quote[];
+}
+
+/** Sent quotes past their valid-until date, for Today. */
+export async function getExpiredQuotes() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("quotes")
+    .select("*")
+    .eq("status", "sent")
+    .order("sent_at", { ascending: true });
+  warn("getExpiredQuotes", error?.message);
+  return ((data ?? []) as Quote[]).filter((quote) => isExpired(quote));
+}
+
+export async function getQuoteSettings(): Promise<QuoteSettings> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("settings").select("value").eq("key", "quote").maybeSingle();
+  warn("getQuoteSettings", error?.message);
+  const value = (data as { value: Partial<QuoteSettings> } | null)?.value ?? {};
+  return { ...DEFAULT_QUOTE_SETTINGS, ...value };
 }

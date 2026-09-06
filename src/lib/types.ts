@@ -126,3 +126,59 @@ export interface ChangeRequest {
   done_at: string | null;
   minutes_spent: number | null;
 }
+
+export type PriceKind = "one_off" | "monthly";
+
+export interface PriceItem {
+  id: string;
+  name: string;
+  description: string | null;
+  kind: PriceKind;
+  price_pence: number;
+  /** "from" pricing: the line is expected to be edited to the real figure. */
+  from_price: boolean;
+  active: boolean;
+  sort_order: number;
+}
+
+export interface QuoteLine {
+  description: string;
+  kind: PriceKind;
+  unit_pence: number;
+  quantity: number;
+}
+
+export type QuoteStatus = "draft" | "sent" | "accepted" | "declined" | "expired";
+
+export interface Quote {
+  id: string;
+  number: string;
+  enquiry_id: string | null;
+  client_id: string | null;
+  to_name: string;
+  to_business: string | null;
+  to_email: string | null;
+  title: string;
+  intro: string | null;
+  lines: QuoteLine[];
+  not_included: string | null;
+  timeline: string | null;
+  deposit_pct: number;
+  valid_days: number;
+  status: QuoteStatus;
+  sent_at: string | null;
+  decided_at: string | null;
+  pdf_path: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuoteSettings {
+  subject: string;
+  body: string;
+  notIncluded: string;
+  paymentNote: string;
+  nextStep: string;
+  validDays: number;
+  depositPct: number;
+}

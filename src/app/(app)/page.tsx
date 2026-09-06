@@ -6,7 +6,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { daysUntil, formatDate, formatMinutes, formatPence, formatRelative } from "@/lib/format";
-import { getOpenRequests, getPipelineThisMonth, getRenewals, getWaitingEnquiries } from "@/lib/queries";
+import { getExpiredQuotes, getOpenRequests, getPipelineThisMonth, getRenewals, getWaitingEnquiries } from "@/lib/queries";
+import { summarise } from "@/lib/quotes";
 import { TIERS } from "@/lib/tiers";
 import { cn } from "@/lib/utils";
 
@@ -20,11 +21,12 @@ export const dynamic = "force-dynamic";
  * the only behaviour phase 1 is meant to change.
  */
 export default async function TodayPage() {
-  const [waiting, requests, renewals, pipeline] = await Promise.all([
+  const [waiting, requests, renewals, pipeline, expiredQuotes] = await Promise.all([
     getWaitingEnquiries(),
     getOpenRequests(),
     getRenewals(14),
     getPipelineThisMonth(),
+    getExpiredQuotes(),
   ]);
   const overdue = waiting.filter((enquiry) => enquiry.overdue);
 
@@ -85,6 +87,30 @@ export default async function TodayPage() {
           This month: <span className="font-medium text-navy tabular-nums">{formatPence(pipeline.quotedPence)}</span> quoted,{" "}
           <span className="font-medium text-good tabular-nums">{formatPence(pipeline.wonPence)}</span> won.
         </p>
+      ) : null}
+
+      {expiredQuotes.length > 0 ? (
+        <>
+          <h2 className="mt-8 mb-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+            Quotes past their date
+          </h2>
+          <ul className="space-y-2">
+            {expiredQuotes.map((quote) => (
+              <li key={quote.id}>
+                <Link href={`/quotes/${quote.id}`} className="flex items-center gap-3 rounded-xl border border-warn/40 p-4 transition-colors hover:border-warn/60 hover:bg-muted/50">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-navy">
+                      <span className="text-cyan-action">{quote.number}</span> · {quote.to_business || quote.to_name}
+                    </p>
+                    <p className="truncate text-sm text-muted-foreground">{summarise(quote.lines)} · chase or close</p>
+                  </div>
+                  <StatusBadge status="expired" />
+                  <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : null}
 
       {requests.length > 0 ? (

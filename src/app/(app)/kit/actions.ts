@@ -186,3 +186,98 @@ export async function deleteDocumentAction(_prev: KitState, formData: FormData):
   revalidatePath("/kit");
   return { error: null, ok: "Removed." };
 }
+
+// ---------------------------------------------------------------------------
+// Price list and quote wording
+// ---------------------------------------------------------------------------
+
+function pounds(formData: FormData, key: string): number | null {
+  const raw = text(formData, key, 20).replace(/[£,\s]/g, "");
+  if (raw === "" || !/^\d*\.?\d*$/.test(raw)) return null;
+  return Math.round(Number(raw) * 100);
+}
+
+type ParsedPrice =
+  | { error: string; row?: undefined }
+  | {
+      error?: undefined;
+      row: { name: string; description: string | null; kind: "one_off" | "monthly"; price_pence: number; from_price: boolean; active: boolean };
+    };
+
+function readPriceItem(formData: FormData): ParsedPrice {
+  const name = text(formData, "name", 120);
+  const kind = text(formData, "kind", 10);
+  const price = pounds(formData, "price");
+  if (!name) return { error: "Give it a name." };
+  if (kind !== "one_off" && kind !== "monthly") return { error: "Pick one-off or monthly." };
+  if (price === null) return { error: "Enter the price in pounds." };
+  return {
+    row: {
+      name,
+      description: text(formData, "description", 300) || null,
+      kind,
+      price_pence: price,
+      from_price: formData.get("from_price") === "on",
+      active: formData.get("active") !== "off",
+    },
+  };
+}
+
+export async function addPriceItemAction(_prev: KitState, formData: FormData): Promise<KitState> {
+  await requireUser();
+  const parsed = readPriceItem(formData);
+  if (parsed.error !== undefined) return { error: parsed.error };
+  const supabase = await createClient();
+  const { data: last } = await supabase.from("price_items").select("sort_order").order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  const sortOrder = ((last as { sort_order: number } | null)?.sort_order ?? 0) + 10;
+  const { error } = await supabase.from("price_items").insert({ ...parsed.row, sort_order: sortOrder });
+  if (error) {
+    console.error("[kit] Add price item failed.", error.message);
+    return { error: "Could not add it." };
+  }
+  revalidatePath("/kit");
+  return { error: null, ok: "Added." };
+}
+
+export async function updatePriceItemAction(_prev: KitState, formData: FormData): Promise<KitState> {
+  await requireUser();
+  const id = text(formData, "id", 40);
+  const parsed = readPriceItem(formData);
+  if (!id) return { error: "Missing item." };
+  if (parsed.error !== undefined) return { error: parsed.error };
+  const supabase = await createClient();
+  const { error } = await supabase.from("price_items").update({ ...parsed.row, active: formData.get("active") === "on" }).eq("id", id);
+  if (error) {
+    console.error("[kit] Update price item failed.", error.message);
+    return { error: "Could not save it." };
+  }
+  revalidatePath("/kit");
+  return { error: null, ok: "Saved." };
+}
+
+export async function saveQuoteWordingAction(_prev: KitState, formData: FormData): Promise<KitState> {
+  await requireUser();
+  const subject = text(formData, "subject", 200);
+  const body = text(formData, "body", 5000);
+  const notIncluded = text(formData, "notIncluded", 3000);
+  const paymentNote = text(formData, "paymentNote", 2000);
+  const nextStep = text(formData, "nextStep", 2000);
+  const validDays = Number(text(formData, "validDays", 5));
+  const depositPct = Number(text(formData, "depositPct", 5));
+  if (!subject || !body) return { error: "Subject and body are both needed." };
+  if (!Number.isInteger(validDays) || validDays < 1 || validDays > 90) return { error: "Validity must be 1 to 90 days." };
+  if (!Number.isInteger(depositPct) || depositPct < 0 || depositPct > 100) return { error: "Deposit must be a whole percentage." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("settings").upsert({
+    key: "quote",
+    value: { subject, body, notIncluded, paymentNote, nextStep, validDays, depositPct },
+    updated_at: new Date().toISOString(),
+  });
+  if (error) {
+    console.error("[kit] Save quote wording failed.", error.message);
+    return { error: "Could not save the wording." };
+  }
+  revalidatePath("/kit");
+  return { error: null, ok: "Saved." };
+}

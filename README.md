@@ -38,12 +38,13 @@ Three things about this stack that will bite you if you assume otherwise:
 | `/enquiries/[id]` | Everything submitted, call and email, status change |
 | `/clients` | Care plan clients, allowance left, add a client |
 | `/clients/[id]` | Plan, allowance ledger, change requests, edit |
-| `/kit` | The reply kit: reply wording, the document shelf, payment links |
+| `/quotes/[id]` | Build, send, and decide a quote; branded PDF in a private bucket |
+| `/kit` | Reply wording, document shelf, payment links, review ask, price list, quote wording |
 | `/login` | Email and password, one user, no sign-up |
 | `/api/enquiries` | Intake from the website, shared secret |
 | `/api/webhooks/stripe` | Plan status, renewals and monthly allowance credits |
 
-Nine routes. The client-facing half of the client dashboard design is parked
+Ten routes. The client-facing half of the client dashboard design is parked
 until the second care plan is sold. Resist adding anything else here.
 
 ## Getting it running
@@ -127,6 +128,17 @@ Documents are PDFs in the public `documents` bucket. Replacing a file uploads
 a new one and leaves the old in place, so links already sent keep working.
 Payment links are in `src/lib/payment-links.ts` on purpose: a wrong link takes
 money to the wrong place, so changing one is a reviewed commit.
+
+## Quotes
+
+Quotes are numbered QTE-003 onwards by a trigger. Lines are copied from the
+price list when added, so a price change never rewrites a sent quote. Totals
+are derived, never stored; one-off and monthly total separately. Send renders
+the PDF with `@react-pdf/renderer` to the brand style, stores it in the
+private `quotes` bucket, and emails it with the PDF attached when
+`RESEND_API_KEY` and `RESEND_FROM_EMAIL` are set on this app. Without them it
+opens the mail app with a 30-day signed link instead. Either way the quote is
+marked sent and the enquiry quoted.
 
 ## Enquiry lifecycle
 

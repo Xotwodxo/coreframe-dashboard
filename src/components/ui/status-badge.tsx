@@ -32,6 +32,12 @@ const STATUS: Record<string, { label: string; tone: keyof typeof TONES }> = {
   // requests
   scheduled: { label: "Scheduled", tone: "progress" },
   done: { label: "Done", tone: "good" },
+  // quotes
+  draft: { label: "Draft", tone: "closed" },
+  sent: { label: "Sent", tone: "progress" },
+  accepted: { label: "Accepted", tone: "good" },
+  declined: { label: "Declined", tone: "closed" },
+  expired: { label: "Expired", tone: "attention" },
 };
 
 export function StatusBadge({ status }: { status: string }) {
