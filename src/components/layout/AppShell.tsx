@@ -3,10 +3,12 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { BottomNav } from "@/components/layout/BottomNav";
+import { FinanceLink } from "@/components/layout/FinanceLink";
 import { SignOutButton } from "@/components/layout/SignOutButton";
 
 /**
- * The header is the website's navbar: navy, the light wordmark, nothing else.
+ * The header is the website's navbar: navy, the light wordmark, and on the
+ * right a link out to the local finance app plus sign out.
  * The rule beneath it is the document template's navy-to-cyan gradient, and
  * the only place the bright brand cyan appears at full strength.
  */
@@ -28,7 +30,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               Admin
             </span>
           </Link>
-          <SignOutButton />
+          <div className="flex items-center gap-1">
+            <FinanceLink />
+            <SignOutButton />
+          </div>
         </div>
         <div
           aria-hidden
