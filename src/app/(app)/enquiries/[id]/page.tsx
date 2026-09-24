@@ -5,6 +5,7 @@ import { ArrowLeft, Mail, Phone } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDateTime, formatPence, telHref } from "@/lib/format";
+import { formatDuration } from "@/lib/lead-sources";
 import { PAYMENT_LINKS, paymentLinkFor } from "@/lib/payment-links";
 import { AskReviewButton } from "@/components/ui/ask-review-button";
 import { QuotesList } from "@/components/ui/quotes-list";
@@ -117,6 +118,15 @@ export default async function EnquiryPage({ params }: PageProps<"/enquiries/[id]
       </div>
 
       <dl className="mt-6 divide-y divide-border">
+        <Detail label="Lead source" value={enquiry.lead_source} />
+        <Detail
+          label="First reply"
+          value={
+            enquiry.first_replied_at
+              ? `${formatDuration((Date.parse(enquiry.first_replied_at) - Date.parse(enquiry.received_at)) / 60000)} after it came in`
+              : null
+          }
+        />
         <Detail label="Phone" value={enquiry.phone} />
         <Detail label="Email" value={enquiry.email} />
         <Detail label="Business" value={enquiry.business_name} />

@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/dal";
 import { STATUS_LABELS, canMove, isEnquiryStatus } from "@/lib/enquiry-status";
+import { isLeadSource } from "@/lib/lead-sources";
 import { createClient } from "@/lib/supabase/server";
 import type { Enquiry } from "@/lib/types";
 
@@ -127,6 +129,75 @@ export async function setQuotedAction(_prev: NoteState, formData: FormData): Pro
   revalidatePath("/");
   revalidatePath(`/enquiries/${id}`);
   return { error: null };
+}
+
+export interface AddEnquiryState {
+  error: string | null;
+}
+
+function field(formData: FormData, name: string, limit: number) {
+  return String(formData.get(name) ?? "").trim().slice(0, limit);
+}
+
+/**
+ * Log a lead that did not come through the website form: a Facebook group
+ * reply, a Bark request, a call, a referral. It lands at `new` like any other
+ * enquiry so it gets the same reply kit and the same speed-to-lead clock.
+ *
+ * nudge_sent_at is stamped straight away: Charlie is looking at this lead as
+ * he logs it, so a Telegram nudge about it would only be noise.
+ */
+export async function addEnquiryAction(
+  _prev: AddEnquiryState,
+  formData: FormData
+): Promise<AddEnquiryState> {
+  await requireUser();
+
+  const name = field(formData, "name", 100);
+  if (!name) return { error: "Add a name, even just a first name." };
+
+  const source = formData.get("lead_source");
+  if (!isLeadSource(source)) return { error: "Pick where the lead came from." };
+
+  // datetime-local has no zone, so the browser sends its offset alongside.
+  const when = field(formData, "received_at", 20);
+  const offset = Number(formData.get("tz_offset") ?? 0);
+  let receivedAt = new Date().toISOString();
+  if (when) {
+    const utc = Date.parse(`${when}:00Z`);
+    if (Number.isNaN(utc) || !Number.isFinite(offset)) return { error: "That date is not valid." };
+    const stamp = utc + offset * 60000;
+    if (stamp > Date.now() + 5 * 60000) return { error: "That date is in the future." };
+    receivedAt = new Date(stamp).toISOString();
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("enquiries")
+    .insert({
+      source: "coreframe",
+      lead_source: source,
+      received_at: receivedAt,
+      nudge_sent_at: new Date().toISOString(),
+      name,
+      business_name: field(formData, "business_name", 120) || null,
+      phone: field(formData, "phone", 40) || null,
+      email: field(formData, "email", 254) || null,
+      message: field(formData, "message", 3000) || null,
+      page: "Logged by hand",
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("[enquiries] Manual add failed.", error?.message);
+    return { error: "Could not save that lead. Try again." };
+  }
+
+  await note(data.id, `Logged by hand from ${source}`);
+  revalidatePath("/");
+  revalidatePath("/enquiries");
+  redirect(`/enquiries/${data.id}`);
 }
 
 /** Called when Charlie taps Ask for a review on a won enquiry. Recorded as a note. */

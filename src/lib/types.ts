@@ -25,6 +25,10 @@ export interface Enquiry {
   status: EnquiryStatus;
   status_changed_at: string | null;
   nudge_sent_at: string | null;
+  /** Where the lead came from. See src/lib/lead-sources.ts. */
+  lead_source: string;
+  /** Stamped by a trigger when the enquiry first leaves `new` for an answered stage. */
+  first_replied_at: string | null;
   /** What was quoted, in pence. Null until a quote is recorded. */
   quoted_pence: number | null;
   quoted_at: string | null;

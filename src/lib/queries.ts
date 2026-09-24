@@ -78,6 +78,52 @@ export async function getWaitingEnquiries(): Promise<WaitingEnquiry[]> {
   }));
 }
 
+export interface LeadStats {
+  /** Enquiries received in the window. */
+  total: number;
+  /** How many of those have a first reply recorded. */
+  replied: number;
+  /** Median minutes from received to first reply, null with no replies yet. */
+  medianReplyMinutes: number | null;
+  /** Replies that went out within an hour. */
+  withinHour: number;
+  /** Lead count per source, largest first. */
+  bySource: { source: string; count: number }[];
+}
+
+/** Speed to lead and lead sources over the last `days` days. */
+export async function getLeadStats(days = 90): Promise<LeadStats> {
+  const supabase = await createClient();
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("enquiries")
+    .select("received_at, first_replied_at, lead_source")
+    .gte("received_at", since);
+  warn("getLeadStats", error?.message);
+  const rows = (data ?? []) as Pick<Enquiry, "received_at" | "first_replied_at" | "lead_source">[];
+
+  const gaps = rows
+    .filter((row) => row.first_replied_at)
+    .map((row) => (Date.parse(row.first_replied_at!) - Date.parse(row.received_at)) / 60000)
+    .sort((a, b) => a - b);
+  const mid = Math.floor(gaps.length / 2);
+  const median =
+    gaps.length === 0 ? null : gaps.length % 2 ? gaps[mid] : (gaps[mid - 1] + gaps[mid]) / 2;
+
+  const counts = new Map<string, number>();
+  for (const row of rows) counts.set(row.lead_source, (counts.get(row.lead_source) ?? 0) + 1);
+
+  return {
+    total: rows.length,
+    replied: gaps.length,
+    medianReplyMinutes: median,
+    withinHour: gaps.filter((gap) => gap <= 60).length,
+    bySource: [...counts.entries()]
+      .map(([source, count]) => ({ source, count }))
+      .sort((a, b) => b.count - a.count),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Phase 2: clients, allowance, requests
 // ---------------------------------------------------------------------------
