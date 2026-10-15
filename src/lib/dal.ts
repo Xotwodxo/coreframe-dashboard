@@ -29,6 +29,16 @@ export const requireUser = cache(async (): Promise<User> => {
 
   if (!user) redirect("/login");
 
+  // Membership, not just a valid token. public.admin_members is written only
+  // by the service role, and the same is_admin() check backs every RLS policy
+  // (migration 20261015150000), so the app and the database agree on who is
+  // allowed in. Anyone else is signed out rather than shown an empty app.
+  const { data: isAdmin } = await supabase.rpc("is_admin");
+  if (isAdmin !== true) {
+    await supabase.auth.signOut();
+    redirect("/login");
+  }
+
   return user;
 });
 

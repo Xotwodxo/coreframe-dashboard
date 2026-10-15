@@ -40,7 +40,7 @@ Three things about this stack that will bite you if you assume otherwise:
 | `/clients/[id]` | Plan, allowance ledger, change requests, edit |
 | `/quotes/[id]` | Build, send, and decide a quote; branded PDF in a private bucket |
 | `/kit` | Reply wording, document shelf, payment links, review ask, price list, quote wording |
-| `/todo` | A short to-do list; dated items surface on Today when due |
+| `/todo` | Retired 15 Oct 2026 (tasks live in the vault). Route kept for history, no longer in the nav |
 | `/login` | Email and password, one user, no sign-up |
 | `/api/enquiries` | Intake from the website, shared secret |
 | `/api/webhooks/stripe` | Plan status, renewals and monthly allowance credits |
@@ -73,15 +73,24 @@ Three gates, in this order:
    visitors. Optimistic only. Not the authorisation boundary.
 2. **`src/lib/dal.ts`** `requireUser()` verifies the token with Supabase on
    every server component and server action that touches data.
-3. **RLS.** `anon` can read and write nothing; `authenticated` has full access.
-   With one account those are the same set.
+3. **RLS.** `anon` can read and write nothing. `authenticated` only gets
+   through if its `auth.uid()` is in `public.admin_members` (migration
+   `20261015150000_admin_members`): a restrictive `verified_admin_only` policy
+   on every table and on the three storage buckets calls `public.is_admin()`,
+   and `requireUser()` calls the same function and signs out anyone it rejects.
+   Only the service role can write `admin_members`.
 
 `SUPABASE_SERVICE_ROLE_KEY` bypasses all of that and is used on exactly two
 paths, neither of which has a session: `/api/enquiries`, guarded by
 `x-cf-intake-key`, and `/api/webhooks/stripe`, guarded by Stripe's signature.
 
-**If a second user is ever added**, the RLS policy must be rewritten to scope
-by user first. Adding an account without doing that gives them everything.
+**To add a user**, create the account in the Supabase dashboard, then insert
+its id into `public.admin_members` with the service role. An account that is
+not in that table can sign in and is immediately signed out again.
+
+**Keep-alive.** Supabase pauses free projects after seven idle days; this one
+was found paused on 15 Oct 2026. `vercel.json` schedules `/api/keepalive`
+daily at 06:00 UTC, guarded by `CRON_SECRET`.
 
 ## How the website connects
 

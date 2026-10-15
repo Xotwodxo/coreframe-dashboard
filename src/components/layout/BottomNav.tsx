@@ -2,22 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CheckSquare, Home, Inbox, Send, Users } from "lucide-react";
+import { Home, Inbox, Send, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 /**
- * Primary navigation, thumb-height at the bottom of the screen. Five items,
- * the same count as the Floor Fitter Wales shell: Today, the enquiries that
- * feed the business, the clients that pay for it, the kit that answers an
- * enquiry, and the list of everything else. That is the lot.
+ * Primary navigation, thumb-height at the bottom of the screen. Four items:
+ * Today, the enquiries that feed the business, the clients that pay for it,
+ * and the kit that answers an enquiry. The to-do tab was retired on
+ * 15 Oct 2026: tasks live in the vault. /todo still exists for its history.
  */
 const LINKS = [
   { href: "/", label: "Today", icon: Home },
   { href: "/enquiries", label: "Enquiries", icon: Inbox },
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/kit", label: "Kit", icon: Send },
-  { href: "/todo", label: "To do", icon: CheckSquare },
 ] as const;
 
 export function BottomNav() {

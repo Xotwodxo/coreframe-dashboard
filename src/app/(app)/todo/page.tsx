@@ -14,7 +14,7 @@ export default async function TodoPage() {
     <>
       <PageHeader
         title="To do"
-        description={open.length === 0 ? "Nothing outstanding." : `${open.length} outstanding.`}
+        description="Retired 15 Oct 2026: tasks live in the vault. Kept for what was logged here."
       />
 
       <AddTodoForm />
