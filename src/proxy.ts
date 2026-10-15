@@ -73,11 +73,12 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   /*
-   * Everything except Next internals, the two machine-to-machine routes (the
-   * enquiry intake called by the website with a shared secret, and the Stripe
-   * webhook verified by signature; neither has a session) and static files.
+   * Everything except Next internals, the three machine-to-machine routes (the
+   * enquiry intake called by the website with a shared secret, the Stripe
+   * webhook verified by signature, and the daily keep-alive guarded by
+   * CRON_SECRET; none has a session) and static files.
    */
   matcher: [
-    "/((?!_next/static|_next/image|api/enquiries|api/webhooks|favicon.ico|robots.txt|manifest.webmanifest|apple-icon.png|icon.png|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|api/enquiries|api/webhooks|api/keepalive|favicon.ico|robots.txt|manifest.webmanifest|apple-icon.png|icon.png|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
   ],
 };
